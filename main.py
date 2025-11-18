@@ -1,8 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, request
 from flask_bootstrap import Bootstrap5
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired
+from form import FindMovieForm, RateMovieForm
 import sqlite3
 import requests
 
@@ -36,17 +34,6 @@ def init_db():
         conn.commit()
 
 init_db()
-
-
-class FindMovieForm(FlaskForm):
-    title = StringField("Movie Title", validators=[DataRequired()])
-    submit = SubmitField("Add Movie")
-
-
-class RateMovieForm(FlaskForm):
-    rating = StringField("Your Rating Out of 10 e.g. 7.5")
-    review = StringField("Your Review")
-    submit = SubmitField("Done")
 
 
 @app.route("/")
