@@ -153,7 +153,6 @@
 	 position: relative;
 	 transform-style: preserve-3d;
 	 transition: 300ms ease;
-
 }
  .button:before {
 	 transition: 300ms ease;
