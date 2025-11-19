@@ -1,35 +1,64 @@
 {% extends 'base.html' %}
 
-{% block title %}My Top 10 Movies{% endblock %}
+{% block title %}My Top 10 Movies Collection{% endblock %}
 
 {% block content %}
 <div class="container">
-  <h1 class="heading">My Top 10 Movies</h1>
-  <p class="description">These are my all-time favourite movies.</p>
-  {% for movie in movies %}
-  <div class="card">
-    <div class="front" style="background-image: url('{{ movie[7] }}');">
-        <p class="large">{{ movie[5] }}</p>
-    </div>
-    <div class="back">
-      <div>
-        <div class="title">{{ movie[1] }} <span class="release_date">({{ movie[2] }})</span></div>
-        <div class="rating">
-            <label>{{ movie[4] if movie[4] else 'N/A' }}</label>
-            <i class="fas fa-star star"></i>
+  <header class="content-header">
+    <h1 class="heading">My Top 10 Movies</h1>
+    <p class="description">A curated collection of my all-time favorite films</p>
+  </header>
+  
+  <div class="movies-grid">
+    {% for movie in movies %}
+    <div class="movie-card">
+      <div class="card-front">
+        <img src="{{ movie[7] }}" alt="{{ movie[1] }} poster" class="movie-poster">
+        <div class="poster-overlay"></div>
+        <div class="front-content">
+          <span class="ranking-badge">#{{ movie[5] }}</span>
         </div>
-        <p class="review">"{{ movie[6] if movie[6] else 'No review yet' }}"</p>
-        <p class="overview">{{ movie[3] }}</p>
-
-        <a href="{{ url_for('rate_movie', id=movie[0]) }}" class="button">Update</a>
-        <a href="{{ url_for('delete_movie', id=movie[0]) }}" class="button delete-button">Delete</a>
+      </div>
+      <div class="card-back">
+        <div class="back-content">
+          <div class="movie-header">
+            <h2 class="movie-title">{{ movie[1] }}</h2>
+            <span class="release-year">({{ movie[2] }})</span>
+          </div>
+          
+          <div class="rating-section">
+            <div class="rating-display">
+              <span class="rating-value">{{ movie[4] if movie[4] else 'N/A' }}</span>
+              <i class="fas fa-star rating-icon"></i>
+            </div>
+          </div>
+          
+          <div class="review-section">
+            <blockquote class="movie-review">"{{ movie[6] if movie[6] else 'Review coming soon' }}"</blockquote>
+          </div>
+          
+          <div class="synopsis-section">
+            <p class="movie-synopsis">{{ movie[3] }}</p>
+          </div>
+          
+          <div class="action-buttons">
+            <a href="{{ url_for('rate_movie', id=movie[0]) }}" class="btn btn-primary">
+              <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{{ url_for('delete_movie', id=movie[0]) }}" class="btn btn-danger">
+              <i class="fas fa-trash"></i> Delete
+            </a>
+          </div>
+        </div>
       </div>
     </div>
+    {% endfor %}
   </div>
-  {% endfor %}
-</div>
-<div class="container text-center add">
-  <a href="{{ url_for('add_movie') }}" class="button">Add Movie</a>
 </div>
 
+<div class="container text-center add-movie-section">
+  <a href="{{ url_for('add_movie') }}" class="btn btn-large">
+    <i class="fas fa-plus"></i> Add New Movie
+  </a>
+</div>
 {% endblock %}
