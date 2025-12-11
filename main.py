@@ -1,8 +1,9 @@
 from flask import Flask, render_template, redirect, url_for, request
 from flask_bootstrap import Bootstrap5
 from form import FindMovieForm, RateMovieForm
-import sqlite3
 import requests
+import mysql.connector
+from mysql.connector import Error
 
 MOVIE_DB_API_KEY = "8a5a5c25b5796fc510b0aca7e18d25c9"
 MOVIE_DB_SEARCH_URL = "https://api.themoviedb.org/3/search/movie"
@@ -13,41 +14,94 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
 Bootstrap5(app)
 
-DB_PATH = "movies.db"
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': '9992',
+    'database': 'my_top_movies'
+}
 
-# Initialize database and create table
+
+def get_db_connection():
+    """Helper function to get database connection"""
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        return conn
+    except Error as e:
+        print(f"Error connecting to MySQL: {e}")
+        return None
+
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
+    try:
+        conn = mysql.connector.connect(
+            host=DB_CONFIG['host'],
+            user=DB_CONFIG['user'],
+            password=DB_CONFIG['password']
+        )
         cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS movies (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT UNIQUE NOT NULL,
-                year INTEGER NOT NULL,
-                description TEXT NOT NULL,
-                rating REAL,
-                ranking INTEGER,
-                review TEXT,
-                img_url TEXT NOT NULL
-            );
-        ''')
-        conn.commit()
+        cursor.execute("CREATE DATABASE IF NOT EXISTS my_top_movies")
+        cursor.close()
+        conn.close()
+
+        # Now create table
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                           CREATE TABLE IF NOT EXISTS movies
+                           (
+                               id
+                               INT
+                               AUTO_INCREMENT
+                               PRIMARY
+                               KEY,
+                               title
+                               VARCHAR
+                           (
+                               255
+                           ) UNIQUE NOT NULL,
+                               year INT NOT NULL,
+                               description TEXT NOT NULL,
+                               rating DECIMAL
+                           (
+                               3,
+                               1
+                           ),
+                               ranking INT,
+                               review TEXT,
+                               img_url TEXT NOT NULL
+                               )
+                           ''')
+            conn.commit()
+            cursor.close()
+            conn.close()
+            print("Database initialized successfully")
+    except Error as e:
+        print(f"Error initializing database: {e}")
+
 
 init_db()
 
 
 @app.route("/")
 def home():
-    with sqlite3.connect(DB_PATH) as conn:
+    conn = get_db_connection()
+    if conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM movies ORDER BY rating DESC")
         all_movies = cursor.fetchall()
+
+        # Update rankings
         for i, movie in enumerate(all_movies):
             movie_id = movie[0]
             ranking = len(all_movies) - i
-            cursor.execute("UPDATE movies SET ranking = ? WHERE id = ?", (ranking, movie_id))
+            cursor.execute("UPDATE movies SET ranking = %s WHERE id = %s", (ranking, movie_id))
+
         conn.commit()
-    return render_template("index.html", movies=all_movies)
+        cursor.close()
+        conn.close()
+        return render_template("index.html", movies=all_movies)
+    return "Database connection error", 500
 
 
 @app.route("/add", methods=["GET", "POST"])
@@ -81,44 +135,80 @@ def find_movie():
             None,
             f"{MOVIE_DB_IMAGE_URL}{data['poster_path']}"
         )
-        with sqlite3.connect(DB_PATH) as conn:
+
+        conn = get_db_connection()
+        if conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                INSERT OR IGNORE INTO movies (title, year, description, rating, ranking, review, img_url)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', new_movie)
-            conn.commit()
+            try:
+                cursor.execute('''
+                               INSERT
+                               IGNORE INTO movies (title, year, description, rating, ranking, review, img_url)
+                    VALUES (
+                               %s,
+                               %s,
+                               %s,
+                               %s,
+                               %s,
+                               %s,
+                               %s
+                               )
+                               ''', new_movie)
+                conn.commit()
+            except Error as e:
+                print(f"Error inserting movie: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+
         return redirect(url_for("home"))
+    return redirect(url_for("add_movie"))
 
 
 @app.route("/edit", methods=["GET", "POST"])
 def rate_movie():
     form = RateMovieForm()
     movie_id = request.args.get("id")
-    with sqlite3.connect(DB_PATH) as conn:
+
+    conn = get_db_connection()
+    if conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM movies WHERE id = ?", (movie_id,))
+        cursor.execute("SELECT * FROM movies WHERE id = %s", (movie_id,))
         movie = cursor.fetchone()
+        cursor.close()
+        conn.close()
+    else:
+        return "Database connection error", 500
+
     if form.validate_on_submit():
-        with sqlite3.connect(DB_PATH) as conn:
+        conn = get_db_connection()
+        if conn:
             cursor = conn.cursor()
             cursor.execute('''
-                UPDATE movies
-                SET rating = ?, review = ?
-                WHERE id = ?
-            ''', (float(form.rating.data), form.review.data, movie_id))
+                           UPDATE movies
+                           SET rating = %s,
+                               review = %s
+                           WHERE id = %s
+                           ''', (float(form.rating.data), form.review.data, movie_id))
             conn.commit()
+            cursor.close()
+            conn.close()
         return redirect(url_for('home'))
+
     return render_template("edit.html", movie=movie, form=form)
 
 
 @app.route("/delete")
 def delete_movie():
     movie_id = request.args.get("id")
-    with sqlite3.connect(DB_PATH) as conn:
+
+    conn = get_db_connection()
+    if conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM movies WHERE id = ?", (movie_id,))
+        cursor.execute("DELETE FROM movies WHERE id = %s", (movie_id,))
         conn.commit()
+        cursor.close()
+        conn.close()
+
     return redirect(url_for("home"))
 
 
