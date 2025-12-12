@@ -31,6 +31,7 @@ def get_db_connection():
         print(f"Error connecting to MySQL: {e}")
         return None
 
+
 def init_db():
     try:
         conn = mysql.connector.connect(
@@ -75,9 +76,10 @@ def init_db():
             conn.commit()
             cursor.close()
             conn.close()
-            print("Database initialized successfully")
     except Error as e:
         print(f"Error initializing database: {e}")
+    finally:
+        print("Database initialized successfully")
 
 
 init_db()
@@ -143,16 +145,7 @@ def find_movie():
                 cursor.execute('''
                                INSERT
                                IGNORE INTO movies (title, year, description, rating, ranking, review, img_url)
-                    VALUES (
-                               %s,
-                               %s,
-                               %s,
-                               %s,
-                               %s,
-                               %s,
-                               %s
-                               )
-                               ''', new_movie)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s) ''', new_movie)
                 conn.commit()
             except Error as e:
                 print(f"Error inserting movie: {e}")
