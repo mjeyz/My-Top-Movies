@@ -6,10 +6,22 @@ import os
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, SubmitField
 from wtforms.validators import DataRequired
+import mysql.connector
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
 Bootstrap5(app)
+
+
+create_db = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    passwd="9992"
+)
+
+mycursor = create_db.cursor()
+mycursor.execute("CREATE DATABASE IF NOT EXISTS `my-top-movies`")
+
 
 # Ensure instance directory exists
 os.makedirs("instance", exist_ok=True)
